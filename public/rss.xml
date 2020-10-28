@@ -23,34 +23,10 @@
         
             <copyright>[CC BY-NC-SA 4.0](https://creativecommons.org/licenses/by-nc-sa/4.0/deed.en)</copyright>
         
-        <lastBuildDate>Wed, 28 Oct 2020 11:46:31 +0800</lastBuildDate>
+        <lastBuildDate>Wed, 28 Oct 2020 11:49:19 +0800</lastBuildDate>
         
             <atom:link rel="self" type="application/rss+xml" href="https://osjobs.net/system/rss.xml" />
         
-        
-            <item>
-                <title>Facebook&#39;s Networking Infrastructure</title>
-                <link>https://osjobs.net/system/posts/facebooks-networking-infrastructure/</link>
-                <guid isPermaLink="true">https://osjobs.net/system/posts/facebooks-networking-infrastructure/</guid>
-                <pubDate>Sat, 11 Apr 2020 18:46:41 +0800</pubDate>
-                
-                    <author>wiwindson@gmail.com (Windson Yang)</author>
-                
-                <copyright>[CC BY-NC-SA 4.0](https://creativecommons.org/licenses/by-nc-sa/4.0/deed.en)</copyright>
-                
-                    <description><![CDATA[]]></description>
-                
-                
-                
-                
-                
-                    
-                        
-                    
-                        
-                    
-                
-            </item>
         
             <item>
                 <title>Facebook 是如何设计 Facebook Live 的</title>
