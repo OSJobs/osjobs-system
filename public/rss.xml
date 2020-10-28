@@ -7,7 +7,7 @@
 
 <rss xmlns:atom="http://www.w3.org/2005/Atom" version="2.0">
     <channel>
-        <title>海外兔</title>
+        <title>系统设计课程</title>
         <link>https://osjobs.net/system/</link>
         <description>MemE is a powerful and highly customizable GoHugo theme for personal blogs.</description>
         <generator>Hugo 0.67.0 https://gohugo.io/</generator>
@@ -23,7 +23,7 @@
         
             <copyright>[CC BY-NC-SA 4.0](https://creativecommons.org/licenses/by-nc-sa/4.0/deed.en)</copyright>
         
-        <lastBuildDate>Wed, 28 Oct 2020 12:29:09 +0800</lastBuildDate>
+        <lastBuildDate>Wed, 28 Oct 2020 12:36:26 +0800</lastBuildDate>
         
             <atom:link rel="self" type="application/rss+xml" href="https://osjobs.net/system/rss.xml" />
         

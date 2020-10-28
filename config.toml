@@ -2,7 +2,7 @@
 # Site Settings
 
 baseURL = "https://osjobs.net/system/"
-title = "海外兔"
+title = "系统设计课程"
 languageCode = "zh"
 hasCJKLanguage = true
 # Copyright information (Markdown supported)
