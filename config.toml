@@ -1,8 +1,8 @@
 ##########################################
 # Site Settings
 
-baseURL = "https://osjobs.net/system/"
-title = "系统设计课程"
+baseURL = "https://osjobs.net//"
+title = "海外兔"
 languageCode = "zh"
 hasCJKLanguage = true
 # Copyright information (Markdown supported)
