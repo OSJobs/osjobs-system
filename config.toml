@@ -1,7 +1,7 @@
 ##########################################
 # Site Settings
 
-baseURL = "https://osjobs.net/"
+baseURL = "https://osjobs.net/system/"
 title = "海外兔"
 languageCode = "zh"
 hasCJKLanguage = true

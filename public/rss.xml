@@ -8,7 +8,7 @@
 <rss xmlns:atom="http://www.w3.org/2005/Atom" version="2.0">
     <channel>
         <title>海外兔</title>
-        <link>https://osjobs.net/</link>
+        <link>https://osjobs.net/system/</link>
         <description>MemE is a powerful and highly customizable GoHugo theme for personal blogs.</description>
         <generator>Hugo 0.67.0 https://gohugo.io/</generator>
         
@@ -23,15 +23,15 @@
         
             <copyright>[CC BY-NC-SA 4.0](https://creativecommons.org/licenses/by-nc-sa/4.0/deed.en)</copyright>
         
-        <lastBuildDate>Wed, 28 Oct 2020 12:27:44 +0800</lastBuildDate>
+        <lastBuildDate>Wed, 28 Oct 2020 12:29:09 +0800</lastBuildDate>
         
-            <atom:link rel="self" type="application/rss+xml" href="https://osjobs.net/rss.xml" />
+            <atom:link rel="self" type="application/rss+xml" href="https://osjobs.net/system/rss.xml" />
         
         
             <item>
                 <title>Facebook 是如何设计 Facebook Live 的</title>
-                <link>https://osjobs.net/posts/facebook-live/</link>
-                <guid isPermaLink="true">https://osjobs.net/posts/facebook-live/</guid>
+                <link>https://osjobs.net/system/posts/facebook-live/</link>
+                <guid isPermaLink="true">https://osjobs.net/system/posts/facebook-live/</guid>
                 <pubDate>Wed, 08 Apr 2020 18:46:41 +0800</pubDate>
                 
                     <author>wiwindson@gmail.com (Windson Yang)</author>
