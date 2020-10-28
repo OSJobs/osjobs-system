@@ -7,7 +7,7 @@ date: 2020-04-08T18:46:41+08:00
 
 <!--more-->
 
-<img src="/facebook/facebook-video-hub.png" style="width:100%"/>
+<img src="https://raw.githubusercontent.com/OSJobs/osjobs-system/main/static/facebook/facebook-video-hub.png" style="width:100%"/>
 
 ### 目录
 1. 高层次架构
@@ -27,7 +27,7 @@ date: 2020-04-08T18:46:41+08:00
 
 ### 1. 高层次架构
 
-<img src="/facebook/high-level.png" style="width:100%"/>
+<img src="https://raw.githubusercontent.com/OSJobs/osjobs-system/main/static/facebook/high-level.png" style="width:100%"/>
 
 1. 直播端使用 RTMPS 协议发送直播数据到边缘节点（POP）
 2. POP 发送数据到数据中心（DC）
@@ -84,7 +84,7 @@ RTMPS 协议就是为视频直播设置的，1) 它能够保证低延迟。2) �
 
 #### 4.1 直播流程
 
-<img src="/facebook/play.png" style="width:100%"/>
+<img src="https://raw.githubusercontent.com/OSJobs/osjobs-system/main/static/facebook/play.png" style="width:100%"/>
 
 1. 直播端使用 RTMPS 协议发送直播流数据到 POP 内的随机一个代理服务器
 2. 代理服务器发送直播流数据到数据中心
@@ -98,7 +98,7 @@ RTMPS 协议就是为视频直播设置的，1) 它能够保证低延迟。2) �
 
 #### 4.2 播放流程
 
-<img src="/facebook/playback.png" style="width:100%"/>
+<img src="https://raw.githubusercontent.com/OSJobs/osjobs-system/main/static/facebook/playback.png" style="width:100%"/>
 
 1. 播放端使用 HTTP DASH 协议向 POP 请求直播数据
 2. POP 里面的代理服务器会检查数据是否已经在 POP 的缓存内。如果是的话，缓存会返回数据给播放端，否则，代理服务器会向 DC 请求直播数据
@@ -112,7 +112,7 @@ RTMPS 协议就是为视频直播设置的，1) 它能够保证低延迟。2) �
 
 #### 5.1 网络因素
 
-<img alt="不可靠的网络" src="/facebook/network.png" style="width:80%"/>
+<img alt="不可靠的网络" src="https://raw.githubusercontent.com/OSJobs/osjobs-system/main/static/facebook/network.png" style="width:80%"/>
 
 - 根据网络连接速度来自动调整视频质量
 - 使用短时间的数据缓存来解决直播端不稳定，瞬间断线的问题

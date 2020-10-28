@@ -23,7 +23,7 @@
         
             <copyright>[CC BY-NC-SA 4.0](https://creativecommons.org/licenses/by-nc-sa/4.0/deed.en)</copyright>
         
-        <lastBuildDate>Wed, 28 Oct 2020 11:49:19 +0800</lastBuildDate>
+        <lastBuildDate>Wed, 28 Oct 2020 11:52:06 +0800</lastBuildDate>
         
             <atom:link rel="self" type="application/rss+xml" href="https://osjobs.net/system/rss.xml" />
         
@@ -39,7 +39,7 @@
                 <copyright>[CC BY-NC-SA 4.0](https://creativecommons.org/licenses/by-nc-sa/4.0/deed.en)</copyright>
                 
                     <description><![CDATA[<p>2015 年 8 月开始，Facebook 允许用户进行视频和语音直播，这篇文章描述 Facebook 的工程师是如何在从零开始在 8个月的时间里搭建这个有过亿活跃用户的平台。</p>
-<img src="/facebook/facebook-video-hub.png" style="width:100%"/>
+<img src="https://raw.githubusercontent.com/OSJobs/osjobs-system/main/static/facebook/facebook-video-hub.png" style="width:100%"/>
 <h3 id="目录">目录</h3>
 <ol>
 <li>高层次架构</li>
@@ -67,7 +67,7 @@
 <li>学到的经验</li>
 </ol>
 <h3 id="1-高层次架构">1. 高层次架构</h3>
-<img src="/facebook/high-level.png" style="width:100%"/>
+<img src="https://raw.githubusercontent.com/OSJobs/osjobs-system/main/static/facebook/high-level.png" style="width:100%"/>
 <ol>
 <li>直播端使用 RTMPS 协议发送直播数据到边缘节点（POP）</li>
 <li>POP 发送数据到数据中心（DC）</li>
@@ -186,7 +186,7 @@
 </table>
 <h3 id="4-数据获取以及处理">4. 数据获取以及处理</h3>
 <h4 id="41-直播流程">4.1 直播流程</h4>
-<img src="/facebook/play.png" style="width:100%"/>
+<img src="https://raw.githubusercontent.com/OSJobs/osjobs-system/main/static/facebook/play.png" style="width:100%"/>
 <ol>
 <li>直播端使用 RTMPS 协议发送直播流数据到 POP 内的随机一个代理服务器</li>
 <li>代理服务器发送直播流数据到数据中心</li>
@@ -202,7 +202,7 @@
 </li>
 </ol>
 <h4 id="42-播放流程">4.2 播放流程</h4>
-<img src="/facebook/playback.png" style="width:100%"/>
+<img src="https://raw.githubusercontent.com/OSJobs/osjobs-system/main/static/facebook/playback.png" style="width:100%"/>
 <ol>
 <li>播放端使用 HTTP DASH 协议向 POP 请求直播数据</li>
 <li>POP 里面的代理服务器会检查数据是否已经在 POP 的缓存内。如果是的话，缓存会返回数据给播放端，否则，代理服务器会向 DC 请求直播数据</li>
@@ -212,7 +212,7 @@
 <p><a href="https://www.cloudflare.com/learning/video/what-is-mpeg-dash/">什么是 MPEG-DASH?</a></p>
 <h3 id="5-可靠性挑战">5. 可靠性挑战</h3>
 <h4 id="51-网络因素">5.1 网络因素</h4>
-<img alt="不可靠的网络" src="/facebook/network.png" style="width:80%"/>
+<img alt="不可靠的网络" src="https://raw.githubusercontent.com/OSJobs/osjobs-system/main/static/facebook/network.png" style="width:80%"/>
 <ul>
 <li>根据网络连接速度来自动调整视频质量</li>
 <li>使用短时间的数据缓存来解决直播端不稳定，瞬间断线的问题</li>
