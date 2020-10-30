@@ -56,7 +56,7 @@ Kaz 使用了 [Apache JMeter](https://jmeter.apache.org/) 作为压测工具对�
 
 Kaz 想起之前 Datastore 团队提出过的一个方案，与其每次更新都执行 1次 事务，可以尝试把多个更新操作合并一起再执行 1次 事务。不过这样每个事务可能包含大量的更新，花费的时间也更久，而在 1次 事务中执行多个更新的话，会增加了并发冲突的可能性。有鉴于此，Datastore 团队提出了另外一个方案，基于队列的任务合并，这个设计模式在 [VoltDb](https://docs.voltdb.com/UsingVoltDB/IntroHowVoltDBWorks.php) 和 [Redis](https://redis.io/topics/transactions) 都能看到，简单来说，就是使用单线程在一次事务中按顺序执行这些更新，既然是单线程，那么就不会有并发冲突的问题。不过，也因为每次只有一个线程在执行任务，更新的速度就取决于这个线程执行更新的速度，需要使用工具测试能否支持每秒 300 次更新。基于这个方案，Kaz 实现了任务合并方案的代码，包括以下几部分：
 
-![合并](https://raw.githubusercontent.com/OSJobs/osjobs-system/main/static/Google%20board/merge.png)
+<img src="https://raw.githubusercontent.com/OSJobs/osjobs-system/main/static/Google%20board/merge.png" style="width:100%"/>
 
 - 前端：接受 SetScore 请求，并把任务放到队列
 - 队列：持续接受保存前端发过来的 SetScore 请求 
@@ -68,7 +68,8 @@ Kaz 再次使用 JMeter 进行测试，他证明了这个方案能够支持每�
 
 但是 Kaz 发现了另外一个问题，但他使用这个方案运行测试几分钟的时候，发现队列的吞吐量偶尔会大范围波动（如下图），尤其是持续几分钟，每秒放入队列 200 个任务的时候。队列突然停止分发任务给后端了，致使响应时间大幅提高。
 
-![任务合并](https://raw.githubusercontent.com/OSJobs/osjobs-system/main/static/Google%20board/估计时间.png)
+<img src="https://raw.githubusercontent.com/OSJobs/osjobs-system/main/static/Google%20board/估计时间.png" style="width:100%"/>
+
 
 Kaz 咨询其他团队问题的来源，发现这已经是个老问题了，因为队列服务使用了 Bigtable 作为持久层，但 Bigtable 的分片过大的时候，会分成多个分片。而在分片的过程，任务是不会进行分发的，所以就导致了上面这个问题。这时候 Michael Tang，一位方案架构师，提出使用多个队列来执行任务，这样即使一个队列因为过大而需要分片时，其他队列也能提供服务，改进后的架构如下：
 
@@ -152,7 +153,7 @@ Kaz 咨询其他团队问题的来源，发现这已经是个老问题了，因�
 
 另外一个方法是把分数按照不同区间放在桶内，在测试中，我们能在 400 毫秒内得到任意用户的排名，其中包括了 HTTP 请求和返回的时间，其中 FindRank的时间并不会由于玩家数量改变而改变。 假设玩家分数分布在 [0, 99]，我们设定 4个 区间，**每个区间需要记录频率以及当前区间最高分数所在的排名：**
 
-![distribution](https://raw.githubusercontent.com/OSJobs/osjobs-system/main/static/Google%20board/桶计算.png)
+<img src="https://raw.githubusercontent.com/OSJobs/osjobs-system/main/static/Google%20board/桶计算.png" style="width:100%"/>
 
 我们会使用这些信息来计算分数的排名，例如如果玩家的分数是 60，我们会查找对应的 [50, 74] 区间，使用该区间的频率 42 和该区间最高排名（74分的排名是5）来估计排名，公式如下：
 
@@ -177,11 +178,11 @@ Kaz 咨询其他团队问题的来源，发现这已经是个老问题了，因�
 ### 准确率
 这个算法的准确率取决于有多少个桶，玩家所在的排名，以及分数的分布。下图是使用不同桶情况的准确率，测试使用了 1万名玩家，以及 [0, 9999] 均匀分布的分数，下图可以看到，即使使用 5个 桶，错误率也在 1% 左右。
 
-![estimated](https://raw.githubusercontent.com/OSJobs/osjobs-system/main/static/Google%20board/桶数量.png)
+<img src="https://raw.githubusercontent.com/OSJobs/osjobs-system/main/static/Google%20board/桶数量.png" style="width:100%"/>
 
 准确率在计算高排名玩家的时候会下降，大部分原因是因为大数定律不适用于仅仅关注高分数的时候。在很多时候，我们可以用一个更加准确的算法来维护这些玩家的排名（注释：例如高分数桶内进行插入排序）因为只有少部分的玩家需要这样计算排名，所以耗费的时间也很少。在上面的测试中，使用均匀分布的分数都能得到不错的效果，除此之外，对于任何密集的分数分布，使用此算法也能得到很好的结果，下图显示了在正态分布情况下预计和实际的排名差别：
 
-![结果](https://raw.githubusercontent.com/OSJobs/osjobs-system/main/static/Google%20board/桶数字分布.png)
+<img src="https://raw.githubusercontent.com/OSJobs/osjobs-system/main/static/Google%20board/桶数字分布.png" style="width:100%"/>
 
 在这个实验中，我们使用了一个只有 100名 玩家的小数据集来测试准确率。每个分数是从 4 个 [0, 100] 的随机数的和的平均值组成，大致能生成一个正态分布的分数，上图使用的是 10个 桶来计算，我们可以看到算法在这个小数据集和非均匀分布的数据集下都能得到很好的结果。
 

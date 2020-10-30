@@ -23,7 +23,7 @@
         
             <copyright>[CC BY-NC-SA 4.0](https://creativecommons.org/licenses/by-nc-sa/4.0/deed.en)</copyright>
         
-        <lastBuildDate>Fri, 30 Oct 2020 22:39:03 +0800</lastBuildDate>
+        <lastBuildDate>Fri, 30 Oct 2020 22:48:10 +0800</lastBuildDate>
         
             <atom:link rel="self" type="application/rss+xml" href="https://osjobs.net/system/rss.xml" />
         
@@ -74,7 +74,7 @@
 <p>但是在压力测试的过程中， Kaz 发现了开源库的一个问题，它对于并发更新的可扩展性非常弱，当他尝试着把请求压力提高到每秒 3次 更新的时候，更新就开始返回错误异常了。很明显，这与 Applibot 要求的能支持每秒 300次 更新还有很大的距离。那么原因是什么呢？一般来说，树结构并不是线性安全的，所以此开源库需要维护树结构的强一致性，也就是保证每次只更新一个节点。而由于整个解决方案基于谷歌的 Datastore，一个高性能的非关系型数据库，（注释：树结构都存储在这个数据库中）。Datastore 使用事务来保证强一致性，每个对象最多只能支持每秒 1次事务执行，当有高并发更新请求的时候，每次更新都需要执行一次事务，最后导致吞吐量非常低。</p>
 <h3 id="任务合并">任务合并</h3>
 <p>Kaz 想起之前 Datastore 团队提出过的一个方案，与其每次更新都执行 1次 事务，可以尝试把多个更新操作合并一起再执行 1次 事务。不过这样每个事务可能包含大量的更新，花费的时间也更久，而在 1次 事务中执行多个更新的话，会增加了并发冲突的可能性。有鉴于此，Datastore 团队提出了另外一个方案，基于队列的任务合并，这个设计模式在 <a href="https://docs.voltdb.com/UsingVoltDB/IntroHowVoltDBWorks.php">VoltDb</a> 和 <a href="https://redis.io/topics/transactions">Redis</a> 都能看到，简单来说，就是使用单线程在一次事务中按顺序执行这些更新，既然是单线程，那么就不会有并发冲突的问题。不过，也因为每次只有一个线程在执行任务，更新的速度就取决于这个线程执行更新的速度，需要使用工具测试能否支持每秒 300 次更新。基于这个方案，Kaz 实现了任务合并方案的代码，包括以下几部分：</p>
-<p><img src="https://raw.githubusercontent.com/OSJobs/osjobs-system/main/static/Google%20board/merge.png" alt="合并"></p>
+<img src="https://raw.githubusercontent.com/OSJobs/osjobs-system/main/static/Google%20board/merge.png" style="width:100%"/>
 <ul>
 <li>前端：接受 SetScore 请求，并把任务放到队列</li>
 <li>队列：持续接受保存前端发过来的 SetScore 请求</li>
@@ -83,7 +83,7 @@
 <p>Kaz 再次使用 JMeter 进行测试，他证明了这个方案能够支持每秒 200次 更新，每次事务执行 500 到 600 次更新。（注释：每个事务可能会执行超过一秒钟）</p>
 <h3 id="任务合并的稳定性">任务合并的稳定性</h3>
 <p>但是 Kaz 发现了另外一个问题，但他使用这个方案运行测试几分钟的时候，发现队列的吞吐量偶尔会大范围波动（如下图），尤其是持续几分钟，每秒放入队列 200 个任务的时候。队列突然停止分发任务给后端了，致使响应时间大幅提高。</p>
-<p><img src="https://raw.githubusercontent.com/OSJobs/osjobs-system/main/static/Google%20board/%E4%BC%B0%E8%AE%A1%E6%97%B6%E9%97%B4.png" alt="任务合并"></p>
+<img src="https://raw.githubusercontent.com/OSJobs/osjobs-system/main/static/Google%20board/估计时间.png" style="width:100%"/>
 <p>Kaz 咨询其他团队问题的来源，发现这已经是个老问题了，因为队列服务使用了 Bigtable 作为持久层，但 Bigtable 的分片过大的时候，会分成多个分片。而在分片的过程，任务是不会进行分发的，所以就导致了上面这个问题。这时候 Michael Tang，一位方案架构师，提出使用多个队列来执行任务，这样即使一个队列因为过大而需要分片时，其他队列也能提供服务，改进后的架构如下：</p>
 <ol>
 <li>把 SetScore 任务放到 10个 队列中</li>
@@ -161,7 +161,7 @@
 </ul>
 <h3 id="buckets-with-global-query">Buckets with Global Query</h3>
 <p>另外一个方法是把分数按照不同区间放在桶内，在测试中，我们能在 400 毫秒内得到任意用户的排名，其中包括了 HTTP 请求和返回的时间，其中 FindRank的时间并不会由于玩家数量改变而改变。 假设玩家分数分布在 [0, 99]，我们设定 4个 区间，<strong>每个区间需要记录频率以及当前区间最高分数所在的排名：</strong></p>
-<p><img src="https://raw.githubusercontent.com/OSJobs/osjobs-system/main/static/Google%20board/%E6%A1%B6%E8%AE%A1%E7%AE%97.png" alt="distribution"></p>
+<img src="https://raw.githubusercontent.com/OSJobs/osjobs-system/main/static/Google%20board/桶计算.png" style="width:100%"/>
 <p>我们会使用这些信息来计算分数的排名，例如如果玩家的分数是 60，我们会查找对应的 [50, 74] 区间，使用该区间的频率 42 和该区间最高排名（74分的排名是5）来估计排名，公式如下：</p>
 <pre><code>rank = 5  + (74 - 60)*42/(74 - 50) =  30
 </code></pre>
@@ -180,9 +180,9 @@
 </ul>
 <h3 id="准确率">准确率</h3>
 <p>这个算法的准确率取决于有多少个桶，玩家所在的排名，以及分数的分布。下图是使用不同桶情况的准确率，测试使用了 1万名玩家，以及 [0, 9999] 均匀分布的分数，下图可以看到，即使使用 5个 桶，错误率也在 1% 左右。</p>
-<p><img src="https://raw.githubusercontent.com/OSJobs/osjobs-system/main/static/Google%20board/%E6%A1%B6%E6%95%B0%E9%87%8F.png" alt="estimated"></p>
+<img src="https://raw.githubusercontent.com/OSJobs/osjobs-system/main/static/Google%20board/桶数量.png" style="width:100%"/>
 <p>准确率在计算高排名玩家的时候会下降，大部分原因是因为大数定律不适用于仅仅关注高分数的时候。在很多时候，我们可以用一个更加准确的算法来维护这些玩家的排名（注释：例如高分数桶内进行插入排序）因为只有少部分的玩家需要这样计算排名，所以耗费的时间也很少。在上面的测试中，使用均匀分布的分数都能得到不错的效果，除此之外，对于任何密集的分数分布，使用此算法也能得到很好的结果，下图显示了在正态分布情况下预计和实际的排名差别：</p>
-<p><img src="https://raw.githubusercontent.com/OSJobs/osjobs-system/main/static/Google%20board/%E6%A1%B6%E6%95%B0%E5%AD%97%E5%88%86%E5%B8%83.png" alt="结果"></p>
+<img src="https://raw.githubusercontent.com/OSJobs/osjobs-system/main/static/Google%20board/桶数字分布.png" style="width:100%"/>
 <p>在这个实验中，我们使用了一个只有 100名 玩家的小数据集来测试准确率。每个分数是从 4 个 [0, 100] 的随机数的和的平均值组成，大致能生成一个正态分布的分数，上图使用的是 10个 桶来计算，我们可以看到算法在这个小数据集和非均匀分布的数据集下都能得到很好的结果。</p>
 <p>结论：
 这篇文章利用现实的例子从算法以及工程的角度分析解决方案，堪称系统设计的典范，其中提及的近似算法也能应用到其他类似的设计场景中，实在受益匪浅。</p>]]></description>
