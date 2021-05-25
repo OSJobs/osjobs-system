@@ -1,0 +1,367 @@
+<!DOCTYPE html>
+<html lang="zh" data-theme="light">
+    <head prefix="og: http://ogp.me/ns# article: http://ogp.me/ns/article#">
+    <meta charset="UTF-8" />
+
+    <meta name="generator" content="Hugo 0.80.0" /><meta name="theme-color" content="#fff" />
+        <script>
+            const userPrefers = localStorage.getItem('theme');
+            const darkModeMediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
+            const lightModeMediaQuery = window.matchMedia('(prefers-color-scheme: light)');
+            if (userPrefers === 'dark') {
+                changeModeMeta('dark');
+            } else if (userPrefers === 'light') {
+                changeModeMeta('light');
+            } else if (darkModeMediaQuery.matches) {
+                changeModeMeta('dark');
+            } else if (lightModeMediaQuery.matches) {
+                changeModeMeta('light');
+            }
+            function changeModeMeta(theme) {
+                document.documentElement.setAttribute('data-theme', theme);
+                if (theme === 'dark') {
+                    changeThemeColor('#1c1c21');
+                } else {
+                    changeThemeColor('#fff');
+                }
+            }
+            function changeThemeColor(themeColor) {
+                document.querySelector('meta[name="theme-color"]').setAttribute('content', themeColor);
+            }
+        </script>
+
+    
+
+    
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=2.0, user-scalable=yes" />
+    
+    <meta name="format-detection" content="telephone=no, date=no, address=no, email=no" />
+    
+    <meta http-equiv="Cache-Control" content="no-transform" />
+    
+    <meta http-equiv="Cache-Control" content="no-siteapp" />
+
+    <title>Airbnb 是如何设计分布式队列的 | 系统设计课程</title>
+
+    <link rel="stylesheet" href="/system/css/meme.min.2f82fa9842c8146df68a513934529bf860fc39b897558138f687fb2f1c377f38.css" integrity="sha256-L4L6mELIFG32ilE5NFKb+GD8ObiXVYE49of7Lxw3fzg=" />
+
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+
+        <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM&#43;Plex&#43;Serif:ital,wght@0,400;0,500;0,700;1,400;1,700&amp;family=Source&#43;Code&#43;Pro:ital,wght@0,400;0,700;1,400;1,700&amp;family=Comfortaa:wght@700&amp;display=swap" media="print" onload="this.media='all'" />
+        <noscript><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM&#43;Plex&#43;Serif:ital,wght@0,400;0,500;0,700;1,400;1,700&amp;family=Source&#43;Code&#43;Pro:ital,wght@0,400;0,700;1,400;1,700&amp;family=Comfortaa:wght@700&amp;display=swap" /></noscript>
+
+    <meta name="author" content="Windson Yang" />
+    
+    
+    <meta name="description" content="在 Airbnb，我们为了保证关键任务的正确执行构建了一个名为 Dynein 的任务调度系统。自推出以来，该系统已成为我们体系结构中非常重要的组成部分，它为从交付应用内消息传递到动态定价的用例提供了强大的动力，所有这些都以每秒非常高的交易量进行。在本文中，我们将浏览 Airbnb 的工作排队系统的历史，解释为什么我们构建 Dynein，描述我们如何实现其高可扩展性，最后，将为Dynein构建的高可扩展性调度程序开源。
+..." />
+
+    <link rel="shortcut icon" type="image/png" href="https://cdn.jsdelivr.net/gh/OSJobs/osjobs-base/img/rabbit-32.png"/>
+    <link rel="mask-icon" href="/system/icons/safari-pinned-tab.svg" color="#2a6df4" />
+    <link rel="apple-touch-icon" sizes="180x180" href="/system/icons/apple-touch-icon.png" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-title" content="系统设计课程" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <meta name="mobile-web-app-capable" content="yes" />
+    <meta name="application-name" content="系统设计课程" />
+    <meta name="msapplication-starturl" content="../../../" />
+    <meta name="msapplication-TileColor" content="#fff" />
+    <meta name="msapplication-TileImage" content="../../../icons/mstile-150x150.png" />
+    <link rel="manifest" href="/system/manifest.json" />
+
+    
+    
+
+    
+    <link rel="canonical" href="https://osjobs.net/system/posts/airbnb-distributed-job/" />
+
+
+
+<script type="application/ld+json">
+    {
+        "@context": "https://schema.org",
+        "@type": "BlogPosting",
+        "datePublished": "2020-11-01T18:46:41+08:00",
+        "dateModified": "2020-11-01T09:58:01+08:00",
+        "url": "https://osjobs.net/system/posts/airbnb-distributed-job/",
+        "headline": "Airbnb 是如何设计分布式队列的",
+        "description": "在 Airbnb，我们为了保证关键任务的正确执行构建了一个名为 Dynein 的任务调度系统。自推出以来，该系统已成为我们体系结构中非常重要的组成部分，它为从交付应用内消息传递到动态定价的用例提供了强大的动力，所有这些都以每秒非常高的交易量进行。在本文中，我们将浏览 Airbnb 的工作排队系统的历史，解释为什么我们构建 Dynein，描述我们如何实现其高可扩展性，最后，将为Dynein构建的高可扩展性调度程序开源。\n...",
+        "inLanguage" : "zh",
+        "articleSection": "posts",
+        "wordCount":  2001 ,
+        "image": "https://osjobs.net/icons/apple-touch-icon.png",
+        "author": {
+            "@type": "Person",
+            "description": "Pass",
+            "email": "wiwindson@gmail.com",
+            "image": "https://osjobs.net/icons/apple-touch-icon.png",
+            "url": "https://osjobs.net",
+            "name": "Windson Yang"
+        },
+        "license": "[CC BY-NC-SA 4.0](https://creativecommons.org/licenses/by-nc-sa/4.0/deed.en)",
+        "publisher": {
+            "@type": "Organization",
+            "name": "系统设计课程",
+            "logo": {
+                "@type": "ImageObject",
+                "url": "https://osjobs.net/icons/apple-touch-icon.png"
+            },
+            "url": "https://osjobs.net/"
+        },
+        "mainEntityOfPage": {
+            "@type": "WebSite",
+            "@id": "https://osjobs.net/"
+        }
+    }
+</script>
+
+    
+
+
+
+<meta name="twitter:card" content="summary" />
+
+<meta name="twitter:site" content="@reuixiy" />
+
+    
+
+
+
+
+
+<meta property="og:title" content="Airbnb 是如何设计分布式队列的" />
+<meta property="og:description" content="在 Airbnb，我们为了保证关键任务的正确执行构建了一个名为 Dynein 的任务调度系统。自推出以来，该系统已成为我们体系结构中非常重要的组成部分，它为从交付应用内消息传递到动态定价的用例提供了强大的动力，所有这些都以每秒非常高的交易量进行。在本文中，我们将浏览 Airbnb 的工作排队系统的历史，解释为什么我们构建 Dynein，描述我们如何实现其高可扩展性，最后，将为Dynein构建的高可扩展性调度程序开源。
+..." />
+<meta property="og:url" content="https://osjobs.net/system/posts/airbnb-distributed-job/" />
+<meta property="og:site_name" content="系统设计课程" />
+<meta property="og:locale" content="en" /><meta property="og:image" content="https://osjobs.net/icons/apple-touch-icon.png" />
+    <meta property="og:type" content="article" />
+    <meta property="article:published_time" content="2020-11-01T18:46:41+08:00" />
+    <meta property="article:modified_time" content="2020-11-01T09:58:01+08:00" />
+    
+    <meta property="article:section" content="posts" />
+
+
+
+    
+</head>
+
+    <body>
+        <div class="container">
+            
+    <header class="header" data-scroll-header>
+        
+            <div class="header-wrapper">
+                <div class="header-inner">
+                    
+    <div class="site-brand">
+        
+            <a href="/system/" class="brand">系统设计课程</a>
+        
+    </div>
+
+                    <a target="_blank" href="https://osjobs.net">海外兔首页</a>
+                </div>
+            </div>
+            
+    <input type="checkbox" id="nav-toggle" aria-hidden="true" />
+    <label for="nav-toggle" class="nav-toggle"></label>
+    <label for="nav-toggle" class="nav-curtain"></label>
+
+
+        
+    </header>
+
+
+
+
+            
+            
+    <main class="main single" id="main">
+    <div class="main-inner">
+
+        <article class="content post" data-type="posts" data-toc-num="true">
+
+            <h1 class="post-title">Airbnb 是如何设计分布式队列的</h1>
+
+            
+
+            
+                
+            
+
+            
+                
+
+<div class="post-meta">
+    
+        
+        <time datetime="2020-11-01T18:46:41+08:00" class="post-meta-item published"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512" class="icon post-meta-icon"><path d="M148 288h-40c-6.6 0-12-5.4-12-12v-40c0-6.6 5.4-12 12-12h40c6.6 0 12 5.4 12 12v40c0 6.6-5.4 12-12 12zm108-12v-40c0-6.6-5.4-12-12-12h-40c-6.6 0-12 5.4-12 12v40c0 6.6 5.4 12 12 12h40c6.6 0 12-5.4 12-12zm96 0v-40c0-6.6-5.4-12-12-12h-40c-6.6 0-12 5.4-12 12v40c0 6.6 5.4 12 12 12h40c6.6 0 12-5.4 12-12zm-96 96v-40c0-6.6-5.4-12-12-12h-40c-6.6 0-12 5.4-12 12v40c0 6.6 5.4 12 12 12h40c6.6 0 12-5.4 12-12zm-96 0v-40c0-6.6-5.4-12-12-12h-40c-6.6 0-12 5.4-12 12v40c0 6.6 5.4 12 12 12h40c6.6 0 12-5.4 12-12zm192 0v-40c0-6.6-5.4-12-12-12h-40c-6.6 0-12 5.4-12 12v40c0 6.6 5.4 12 12 12h40c6.6 0 12-5.4 12-12zm96-260v352c0 26.5-21.5 48-48 48H48c-26.5 0-48-21.5-48-48V112c0-26.5 21.5-48 48-48h48V12c0-6.6 5.4-12 12-12h40c6.6 0 12 5.4 12 12v52h128V12c0-6.6 5.4-12 12-12h40c6.6 0 12 5.4 12 12v52h48c26.5 0 48 21.5 48 48zm-48 346V160H48v298c0 3.3 2.7 6 6 6h340c3.3 0 6-2.7 6-6z"/></svg>&nbsp;2020.11.1</time>
+    
+    
+        
+        <time datetime="2020-11-01T09:58:01+08:00" class="post-meta-item modified"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512" class="icon post-meta-icon"><path d="M400 64h-48V12c0-6.627-5.373-12-12-12h-40c-6.627 0-12 5.373-12 12v52H160V12c0-6.627-5.373-12-12-12h-40c-6.627 0-12 5.373-12 12v52H48C21.49 64 0 85.49 0 112v352c0 26.51 21.49 48 48 48h352c26.51 0 48-21.49 48-48V112c0-26.51-21.49-48-48-48zm-6 400H54a6 6 0 0 1-6-6V160h352v298a6 6 0 0 1-6 6zm-52.849-200.65L198.842 404.519c-4.705 4.667-12.303 4.637-16.971-.068l-75.091-75.699c-4.667-4.705-4.637-12.303.068-16.971l22.719-22.536c4.705-4.667 12.303-4.637 16.97.069l44.104 44.461 111.072-110.181c4.705-4.667 12.303-4.637 16.971.068l22.536 22.718c4.667 4.705 4.636 12.303-.069 16.97z"/></svg>&nbsp;2020.11.1</time>
+    
+    
+    
+        
+        
+        
+            
+        
+    
+    
+        
+        <span class="post-meta-item wordcount"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" class="icon post-meta-icon"><path d="M497.9 142.1l-46.1 46.1c-4.7 4.7-12.3 4.7-17 0l-111-111c-4.7-4.7-4.7-12.3 0-17l46.1-46.1c18.7-18.7 49.1-18.7 67.9 0l60.1 60.1c18.8 18.7 18.8 49.1 0 67.9zM284.2 99.8L21.6 362.4.4 483.9c-2.9 16.4 11.4 30.6 27.8 27.8l121.5-21.3 262.6-262.6c4.7-4.7 4.7-12.3 0-17l-111-111c-4.8-4.7-12.4-4.7-17.1 0zM124.1 339.9c-5.5-5.5-5.5-14.3 0-19.8l154-154c5.5-5.5 14.3-5.5 19.8 0s5.5 14.3 0 19.8l-154 154c-5.5 5.5-14.3 5.5-19.8 0zM88 424h48v36.3l-64.5 11.3-31.1-31.1L51.7 376H88v48z"/></svg>&nbsp;2001</span>
+    
+    
+        
+        <span class="post-meta-item reading-time"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" class="icon post-meta-icon"><path d="M256 8C119 8 8 119 8 256s111 248 248 248 248-111 248-248S393 8 256 8zm0 448c-110.5 0-200-89.5-200-200S145.5 56 256 56s200 89.5 200 200-89.5 200-200 200zm61.8-104.4l-84.9-61.7c-3.1-2.3-4.9-5.9-4.9-9.7V116c0-6.6 5.4-12 12-12h32c6.6 0 12 5.4 12 12v141.7l66.8 48.6c5.4 3.9 6.5 11.4 2.6 16.8L334.6 349c-3.9 5.3-11.4 6.5-16.8 2.6z"/></svg>&nbsp;4&nbsp;mins</span>
+    
+    
+</div>
+            
+
+            <div class="post-body"><p style="text-indent:0"><span class="drop-cap">在</span> Airbnb，我们为了保证关键任务的正确执行构建了一个名为 Dynein 的任务调度系统。自推出以来，该系统已成为我们体系结构中非常重要的组成部分，它为从交付应用内消息传递到动态定价的用例提供了强大的动力，所有这些都以每秒非常高的交易量进行。在本文中，我们将浏览 Airbnb 的工作排队系统的历史，解释为什么我们构建 Dynein，描述我们如何实现其高可扩展性，最后，将为Dynein构建的高可扩展性调度程序开源。</p>
+<!--more-->
+<h2 id="目录"><a href="#目录" class="anchor-link"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" class="icon anchor-icon"><path d="M326.612 185.391c59.747 59.809 58.927 155.698.36 214.59-.11.12-.24.25-.36.37l-67.2 67.2c-59.27 59.27-155.699 59.262-214.96 0-59.27-59.26-59.27-155.7 0-214.96l37.106-37.106c9.84-9.84 26.786-3.3 27.294 10.606.648 17.722 3.826 35.527 9.69 52.721 1.986 5.822.567 12.262-3.783 16.612l-13.087 13.087c-28.026 28.026-28.905 73.66-1.155 101.96 28.024 28.579 74.086 28.749 102.325.51l67.2-67.19c28.191-28.191 28.073-73.757 0-101.83-3.701-3.694-7.429-6.564-10.341-8.569a16.037 16.037 0 0 1-6.947-12.606c-.396-10.567 3.348-21.456 11.698-29.806l21.054-21.055c5.521-5.521 14.182-6.199 20.584-1.731a152.482 152.482 0 0 1 20.522 17.197zM467.547 44.449c-59.261-59.262-155.69-59.27-214.96 0l-67.2 67.2c-.12.12-.25.25-.36.37-58.566 58.892-59.387 154.781.36 214.59a152.454 152.454 0 0 0 20.521 17.196c6.402 4.468 15.064 3.789 20.584-1.731l21.054-21.055c8.35-8.35 12.094-19.239 11.698-29.806a16.037 16.037 0 0 0-6.947-12.606c-2.912-2.005-6.64-4.875-10.341-8.569-28.073-28.073-28.191-73.639 0-101.83l67.2-67.19c28.239-28.239 74.3-28.069 102.325.51 27.75 28.3 26.872 73.934-1.155 101.96l-13.087 13.087c-4.35 4.35-5.769 10.79-3.783 16.612 5.864 17.194 9.042 34.999 9.69 52.721.509 13.906 17.454 20.446 27.294 10.606l37.106-37.106c59.271-59.259 59.271-155.699.001-214.959z"/></svg></a>目录</h2>
+<pre><code>- 任务调度系统
+</code></pre>
+<p>异步队列任务大部分可以情况都可以提高 Web 应用程序的扩展性。这些任务通常比较容易失败，并且由于重试机制通常使此类任务的运行成本变得更高。使用异步分布式队列有助于 Web 服务器迅速处理传入的 Web 请求，并减少在请求积压时发生性能问题的可能性。本文讲述了 Airbnb 是如何设计它们新一代的分布式队列 Dynein 的。</p>
+<p>Airbnb 的许多系统都利用作业队列。例如，当 Airbnb 的慷慨房东加入我们的“开放房”计划时，Airbnb 会将其与需要帮助的非营利组织或撤离者相匹配。匹配过程非常复杂，并且占用大量的计算资源，因此我们将匹配的工作放在工作队列中，以确保 Airbnb 的可靠性和响应能力。在另一个示例中，在预定的预定入住时间之前，我们会向客人发送提醒，提醒您该准备好旅行了。这些工作通常可以安排在未来几个月甚至几年的时间里，并且必须可靠地交付以确保 Airbnb 社区的良好体验。</p>
+<p>在这些情况下，可靠且易于使用的作业调度系统将非常有用，而且也是必要的。与Airbnb的团队交谈后，我们决定调度系统必须提供以下功能：</p>
+<ul>
+<li>
+<p>可靠性。如果系统发生故障或重新启动，则系统不会丢失数据。它应保证每个工作至少一次交付。</p>
+</li>
+<li>
+<p>可扩展性。 Airbnb相信长期投资，我们的排队系统应该能够在不进行大量扩展工作的情况下扩展并支持我们的需求。调度系统应可水平扩展，以便随着Airbnb社区的增长进行容量规划。</p>
+</li>
+<li>
+<p>隔离。系统应能够隔离每个应用程序的作业。单个应用程序的队列不堪重负，不应影响其他服务中的作业处理。</p>
+</li>
+<li>
+<p>定时精度。在我们的许多用例中，应用程序都要求作业在计划的时间之内运行。调度程序的p95调度偏差应小于10秒。</p>
+</li>
+<li>
+<p>高效排队。除了可靠地安排作业之外，系统还应该提供有效的排队接口。例如，作业队列应支持单个消息的成功/失败确认（未能处理单个消息不应影响其他消息），死信队列（多次处理失败的消息应移至单独的消息队列）队列），并为每个单独的使用者使用单独的工作池（每个服务应运行自己的工作池，而不是共享的工作池）。</p>
+</li>
+<li>
+<p>可用性。使用特定的作业调度程序调度作业并在消息队列中进行传输的事实对开发人员应该是透明的。客户端库应设计为促进最佳实践，例如指数补偿和速率限制处理，而不是公开调度服务的内部。
+计划外。基于排队系统发布的唯一标识符，应该可以随时取消计划作业。</p>
+</li>
+</ul>
+<h2 id="大规模运行"><a href="#大规模运行" class="anchor-link"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" class="icon anchor-icon"><path d="M326.612 185.391c59.747 59.809 58.927 155.698.36 214.59-.11.12-.24.25-.36.37l-67.2 67.2c-59.27 59.27-155.699 59.262-214.96 0-59.27-59.26-59.27-155.7 0-214.96l37.106-37.106c9.84-9.84 26.786-3.3 27.294 10.606.648 17.722 3.826 35.527 9.69 52.721 1.986 5.822.567 12.262-3.783 16.612l-13.087 13.087c-28.026 28.026-28.905 73.66-1.155 101.96 28.024 28.579 74.086 28.749 102.325.51l67.2-67.19c28.191-28.191 28.073-73.757 0-101.83-3.701-3.694-7.429-6.564-10.341-8.569a16.037 16.037 0 0 1-6.947-12.606c-.396-10.567 3.348-21.456 11.698-29.806l21.054-21.055c5.521-5.521 14.182-6.199 20.584-1.731a152.482 152.482 0 0 1 20.522 17.197zM467.547 44.449c-59.261-59.262-155.69-59.27-214.96 0l-67.2 67.2c-.12.12-.25.25-.36.37-58.566 58.892-59.387 154.781.36 214.59a152.454 152.454 0 0 0 20.521 17.196c6.402 4.468 15.064 3.789 20.584-1.731l21.054-21.055c8.35-8.35 12.094-19.239 11.698-29.806a16.037 16.037 0 0 0-6.947-12.606c-2.912-2.005-6.64-4.875-10.341-8.569-28.073-28.073-28.191-73.639 0-101.83l67.2-67.19c28.239-28.239 74.3-28.069 102.325.51 27.75 28.3 26.872 73.934-1.155 101.96l-13.087 13.087c-4.35 4.35-5.769 10.79-3.783 16.612 5.864 17.194 9.042 34.999 9.69 52.721.509 13.906 17.454 20.446 27.294 10.606l37.106-37.106c59.271-59.259 59.271-155.699.001-214.959z"/></svg></a>大规模运行</h2>
+<p>从历史上看，Airbnb在Resque Scheduler的基础上运行一个集中的Resque Worker集群，以及一个定制的Scheduler以延长延迟时间。尽管易于使用，但几年前为支持我们的单片应用程序而构建的Resque集群对于我们向SOA（面向服务的体系结构）的过渡已不再足够。大规模运行Resque时，我们发现了以下问题：</p>
+<p>Resque是最多使用一次的系统，这意味着不能保证会传递邮件。</p>
+<p>Resque具有明显的扩展瓶颈。 Resque依赖于一个Redis实例，因此无法将Redis集群模式与Resque一起使用。然后，我们受到单个Redis实例的内存大小和网络容量的限制。</p>
+<p>我们在整体应用程序的工人集群中运行大部分工作。尽管Resque提供了在单个应用程序中使用不同队列的能力，但这些队列仍共享相同的代码库和Redis实例。一份不好的工作通常会导致大部分工作处理人员停职。
+Resque Scheduler是Resque之上的扩展，提供了有限的调度功能。 Resque Scheduler在简化方面类似于Resque，但是其调度能力受到限制。例如，Resque Scheduler将要运行的每个作业存储在Redis中，这意味着队列大小本质上受托管Redis的计算机的RAM大小限制。在Resque Scheduler中也很难使工作出队。尽管Resque Scheduler在内部提供了此类API，但它需要搜索整个待办事项。由于这些限制，我们使用Resque Scheduler对作业的数据大小和延迟时间设置了严格的限制，并限制了出队API的使用。</p>
+<p>为了解决Resque Scheduler的局限性，我们构建了一个基于MySQL的内部系统，该系统提供长时间的延迟以及更强的交付保证和可审核性。但是，此系统的构建是高度一致的，而不是高度可伸缩的。</p>
+<h2 id="建立正确的排队和调度服务"><a href="#建立正确的排队和调度服务" class="anchor-link"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" class="icon anchor-icon"><path d="M326.612 185.391c59.747 59.809 58.927 155.698.36 214.59-.11.12-.24.25-.36.37l-67.2 67.2c-59.27 59.27-155.699 59.262-214.96 0-59.27-59.26-59.27-155.7 0-214.96l37.106-37.106c9.84-9.84 26.786-3.3 27.294 10.606.648 17.722 3.826 35.527 9.69 52.721 1.986 5.822.567 12.262-3.783 16.612l-13.087 13.087c-28.026 28.026-28.905 73.66-1.155 101.96 28.024 28.579 74.086 28.749 102.325.51l67.2-67.19c28.191-28.191 28.073-73.757 0-101.83-3.701-3.694-7.429-6.564-10.341-8.569a16.037 16.037 0 0 1-6.947-12.606c-.396-10.567 3.348-21.456 11.698-29.806l21.054-21.055c5.521-5.521 14.182-6.199 20.584-1.731a152.482 152.482 0 0 1 20.522 17.197zM467.547 44.449c-59.261-59.262-155.69-59.27-214.96 0l-67.2 67.2c-.12.12-.25.25-.36.37-58.566 58.892-59.387 154.781.36 214.59a152.454 152.454 0 0 0 20.521 17.196c6.402 4.468 15.064 3.789 20.584-1.731l21.054-21.055c8.35-8.35 12.094-19.239 11.698-29.806a16.037 16.037 0 0 0-6.947-12.606c-2.912-2.005-6.64-4.875-10.341-8.569-28.073-28.073-28.191-73.639 0-101.83l67.2-67.19c28.239-28.239 74.3-28.069 102.325.51 27.75 28.3 26.872 73.934-1.155 101.96l-13.087 13.087c-4.35 4.35-5.769 10.79-3.783 16.612 5.864 17.194 9.042 34.999 9.69 52.721.509 13.906 17.454 20.446 27.294 10.606l37.106-37.106c59.271-59.259 59.271-155.699.001-214.959z"/></svg></a>建立正确的排队和调度服务</h2>
+<p>考虑到历史背景和挑战，我们建立了Dynein，这是一种分布式延迟的工作排队服务。以下是有关如何在Dynein服务中组织不同组件以及如何将其集成到Airbnb的不同服务中的高层概述。我们将介绍为什么以及如何设计每个组件，并说明它们如何协同工作。</p>
+</div>
+
+        </article>
+
+        
+
+        
+    
+    
+
+
+        
+    
+
+
+        
+
+        
+
+        
+    
+        
+        
+    
+    
+    
+    
+        <ul class="post-nav">
+            
+            
+                <li class="post-nav-next">
+                    <a href="/system/posts/google-board/" rel="next">Google 是如何设计排名系统的 ></a>
+                </li>
+            
+        </ul>
+    
+
+
+        
+
+
+    </div>
+</main>
+
+
+            
+    <div id="back-to-top" class="back-to-top">
+        <a href="#"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512" class="icon"><path d="M34.9 289.5l-22.2-22.2c-9.4-9.4-9.4-24.6 0-33.9L207 39c9.4-9.4 24.6-9.4 33.9 0l194.3 194.3c9.4 9.4 9.4 24.6 0 33.9L413 289.4c-9.5 9.5-25 9.3-34.3-.4L264 168.6V456c0 13.3-10.7 24-24 24h-32c-13.3 0-24-10.7-24-24V168.6L69.2 289.1c-9.3 9.8-24.8 10-34.3.4z"/></svg></a>
+    </div>
+
+            
+    <footer id="footer" class="footer">
+        <div class="footer-inner"><div class="site-info">©&nbsp;1969–2021&nbsp;<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" class="icon footer-icon"><path d="M462.3 62.6C407.5 15.9 326 24.3 275.7 76.2L256 96.5l-19.7-20.3C186.1 24.3 104.5 15.9 49.7 62.6c-62.8 53.6-66.1 149.8-9.9 207.9l193.5 199.8c12.5 12.9 32.8 12.9 45.3 0l193.5-199.8c56.3-58.1 53-154.3-9.8-207.9z"/></svg>&nbsp;Windson Yang</div><div class="powered-by">Powered by <a href="https://github.com/gohugoio/hugo" target="_blank" rel="noopener">Hugo</a> | Theme is <a href="https://github.com/reuixiy/hugo-theme-meme" target="_blank" rel="noopener">MemE</a></div><div class="site-copyright"><a href="https://creativecommons.org/licenses/by-nc-sa/4.0/deed.en" target="_blank" rel="noopener">CC BY-NC-SA 4.0</a></div>
+
+            
+        </div>
+    </footer>
+
+
+        </div>
+        <script src="/system/js/meme.min.e37191ec1f0e5e27aea2ec20b2951ad15eece331f585ab17d73398389a3fce52.js" integrity="sha256-43GR7B8OXieuouwgspUa0V7s4zH1hasX1zOYOJo/zlI="></script>
+
+
+    <script src="https://cdn.jsdelivr.net/gh/cferdinandi/smooth-scroll/dist/smooth-scroll.polyfills.min.js"></script>
+
+<script>
+    var scroll = new SmoothScroll('a[href*="#"]', {
+        speedAsDuration: true,
+        header: '[data-scroll-header]'
+    });
+</script>
+
+
+
+
+
+
+
+
+
+
+    <script src="https://cdn.jsdelivr.net/npm/medium-zoom@latest/dist/medium-zoom.min.js"></script>
+
+<script>
+    mediumZoom(document.querySelectorAll('div.post-body img'), {
+        background: 'hsla(var(--color-bg-h), var(--color-bg-s), var(--color-bg-l), 0.95)'
+    })
+</script>
+
+
+
+
+    <script src="https://cdn.jsdelivr.net/npm/instant.page@3.0.0/instantpage.min.js" type="module" defer></script>
+
+
+
+
+
+
+
+
+
+
+    </body>
+</html>

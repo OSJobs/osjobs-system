@@ -10,7 +10,7 @@
         <title>系统设计课程</title>
         <link>https://osjobs.net/system/</link>
         <description>MemE is a powerful and highly customizable GoHugo theme for personal blogs.</description>
-        <generator>Hugo 0.67.0 https://gohugo.io/</generator>
+        <generator>Hugo 0.80.0 https://gohugo.io/</generator>
         
             <language>zh</language>
         
@@ -23,10 +23,70 @@
         
             <copyright>[CC BY-NC-SA 4.0](https://creativecommons.org/licenses/by-nc-sa/4.0/deed.en)</copyright>
         
-        <lastBuildDate>Fri, 30 Oct 2020 22:48:10 +0800</lastBuildDate>
+        <lastBuildDate>Tue, 25 May 2021 12:05:21 +0800</lastBuildDate>
         
             <atom:link rel="self" type="application/rss+xml" href="https://osjobs.net/system/rss.xml" />
         
+        
+            <item>
+                <title>Airbnb 是如何设计分布式队列的</title>
+                <link>https://osjobs.net/system/posts/airbnb-distributed-job/</link>
+                <guid isPermaLink="true">https://osjobs.net/system/posts/airbnb-distributed-job/</guid>
+                <pubDate>Sun, 01 Nov 2020 18:46:41 +0800</pubDate>
+                
+                    <author>wiwindson@gmail.com (Windson Yang)</author>
+                
+                <copyright>[CC BY-NC-SA 4.0](https://creativecommons.org/licenses/by-nc-sa/4.0/deed.en)</copyright>
+                
+                    <description><![CDATA[<p>在 Airbnb，我们为了保证关键任务的正确执行构建了一个名为 Dynein 的任务调度系统。自推出以来，该系统已成为我们体系结构中非常重要的组成部分，它为从交付应用内消息传递到动态定价的用例提供了强大的动力，所有这些都以每秒非常高的交易量进行。在本文中，我们将浏览 Airbnb 的工作排队系统的历史，解释为什么我们构建 Dynein，描述我们如何实现其高可扩展性，最后，将为Dynein构建的高可扩展性调度程序开源。</p>
+<h2 id="目录">目录</h2>
+<pre><code>- 任务调度系统
+</code></pre>
+<p>异步队列任务大部分可以情况都可以提高 Web 应用程序的扩展性。这些任务通常比较容易失败，并且由于重试机制通常使此类任务的运行成本变得更高。使用异步分布式队列有助于 Web 服务器迅速处理传入的 Web 请求，并减少在请求积压时发生性能问题的可能性。本文讲述了 Airbnb 是如何设计它们新一代的分布式队列 Dynein 的。</p>
+<p>Airbnb 的许多系统都利用作业队列。例如，当 Airbnb 的慷慨房东加入我们的“开放房”计划时，Airbnb 会将其与需要帮助的非营利组织或撤离者相匹配。匹配过程非常复杂，并且占用大量的计算资源，因此我们将匹配的工作放在工作队列中，以确保 Airbnb 的可靠性和响应能力。在另一个示例中，在预定的预定入住时间之前，我们会向客人发送提醒，提醒您该准备好旅行了。这些工作通常可以安排在未来几个月甚至几年的时间里，并且必须可靠地交付以确保 Airbnb 社区的良好体验。</p>
+<p>在这些情况下，可靠且易于使用的作业调度系统将非常有用，而且也是必要的。与Airbnb的团队交谈后，我们决定调度系统必须提供以下功能：</p>
+<ul>
+<li>
+<p>可靠性。如果系统发生故障或重新启动，则系统不会丢失数据。它应保证每个工作至少一次交付。</p>
+</li>
+<li>
+<p>可扩展性。 Airbnb相信长期投资，我们的排队系统应该能够在不进行大量扩展工作的情况下扩展并支持我们的需求。调度系统应可水平扩展，以便随着Airbnb社区的增长进行容量规划。</p>
+</li>
+<li>
+<p>隔离。系统应能够隔离每个应用程序的作业。单个应用程序的队列不堪重负，不应影响其他服务中的作业处理。</p>
+</li>
+<li>
+<p>定时精度。在我们的许多用例中，应用程序都要求作业在计划的时间之内运行。调度程序的p95调度偏差应小于10秒。</p>
+</li>
+<li>
+<p>高效排队。除了可靠地安排作业之外，系统还应该提供有效的排队接口。例如，作业队列应支持单个消息的成功/失败确认（未能处理单个消息不应影响其他消息），死信队列（多次处理失败的消息应移至单独的消息队列）队列），并为每个单独的使用者使用单独的工作池（每个服务应运行自己的工作池，而不是共享的工作池）。</p>
+</li>
+<li>
+<p>可用性。使用特定的作业调度程序调度作业并在消息队列中进行传输的事实对开发人员应该是透明的。客户端库应设计为促进最佳实践，例如指数补偿和速率限制处理，而不是公开调度服务的内部。
+计划外。基于排队系统发布的唯一标识符，应该可以随时取消计划作业。</p>
+</li>
+</ul>
+<h2 id="大规模运行">大规模运行</h2>
+<p>从历史上看，Airbnb在Resque Scheduler的基础上运行一个集中的Resque Worker集群，以及一个定制的Scheduler以延长延迟时间。尽管易于使用，但几年前为支持我们的单片应用程序而构建的Resque集群对于我们向SOA（面向服务的体系结构）的过渡已不再足够。大规模运行Resque时，我们发现了以下问题：</p>
+<p>Resque是最多使用一次的系统，这意味着不能保证会传递邮件。</p>
+<p>Resque具有明显的扩展瓶颈。 Resque依赖于一个Redis实例，因此无法将Redis集群模式与Resque一起使用。然后，我们受到单个Redis实例的内存大小和网络容量的限制。</p>
+<p>我们在整体应用程序的工人集群中运行大部分工作。尽管Resque提供了在单个应用程序中使用不同队列的能力，但这些队列仍共享相同的代码库和Redis实例。一份不好的工作通常会导致大部分工作处理人员停职。
+Resque Scheduler是Resque之上的扩展，提供了有限的调度功能。 Resque Scheduler在简化方面类似于Resque，但是其调度能力受到限制。例如，Resque Scheduler将要运行的每个作业存储在Redis中，这意味着队列大小本质上受托管Redis的计算机的RAM大小限制。在Resque Scheduler中也很难使工作出队。尽管Resque Scheduler在内部提供了此类API，但它需要搜索整个待办事项。由于这些限制，我们使用Resque Scheduler对作业的数据大小和延迟时间设置了严格的限制，并限制了出队API的使用。</p>
+<p>为了解决Resque Scheduler的局限性，我们构建了一个基于MySQL的内部系统，该系统提供长时间的延迟以及更强的交付保证和可审核性。但是，此系统的构建是高度一致的，而不是高度可伸缩的。</p>
+<h2 id="建立正确的排队和调度服务">建立正确的排队和调度服务</h2>
+<p>考虑到历史背景和挑战，我们建立了Dynein，这是一种分布式延迟的工作排队服务。以下是有关如何在Dynein服务中组织不同组件以及如何将其集成到Airbnb的不同服务中的高层概述。我们将介绍为什么以及如何设计每个组件，并说明它们如何协同工作。</p>]]></description>
+                
+                
+                
+                
+                
+                    
+                        
+                    
+                        
+                    
+                
+            </item>
         
             <item>
                 <title>Google 是如何设计排名系统的</title>
@@ -277,52 +337,52 @@
 <thead>
 <tr>
 <th>协议</th>
-<th align="center">上线时间</th>
-<th align="center">网络兼容</th>
-<th align="center">端对端延迟</th>
-<th align="center">应用大小</th>
+<th style="text-align:center">上线时间</th>
+<th style="text-align:center">网络兼容</th>
+<th style="text-align:center">端对端延迟</th>
+<th style="text-align:center">应用大小</th>
 <th>问题</th>
 </tr>
 </thead>
 <tbody>
 <tr>
 <td>WebRTC</td>
-<td align="center"></td>
-<td align="center">✗</td>
-<td align="center"></td>
-<td align="center"></td>
+<td style="text-align:center"></td>
+<td style="text-align:center">✗</td>
+<td style="text-align:center"></td>
+<td style="text-align:center"></td>
 <td>Webrtc 基于 UDP，和 Facebook 的网络架构不兼容</td>
 </tr>
 <tr>
 <td>HTTP Upload</td>
-<td align="center"></td>
-<td align="center"></td>
-<td align="center">✗</td>
-<td align="center"></td>
+<td style="text-align:center"></td>
+<td style="text-align:center"></td>
+<td style="text-align:center">✗</td>
+<td style="text-align:center"></td>
 <td>会导致网络高延迟</td>
 </tr>
 <tr>
 <td>Custom Protocol</td>
-<td align="center">✗</td>
-<td align="center"></td>
-<td align="center"></td>
-<td align="center"></td>
+<td style="text-align:center">✗</td>
+<td style="text-align:center"></td>
+<td style="text-align:center"></td>
+<td style="text-align:center"></td>
 <td>工程师需要实现自己的客户端与服务端的库，无法按时上线</td>
 </tr>
 <tr>
 <td>Proprietary</td>
-<td align="center"></td>
-<td align="center"></td>
-<td align="center"></td>
-<td align="center">✗</td>
+<td style="text-align:center"></td>
+<td style="text-align:center"></td>
+<td style="text-align:center"></td>
+<td style="text-align:center">✗</td>
 <td>需要几兆的空间，超出额度</td>
 </tr>
 <tr>
 <td>RTMPS</td>
-<td align="center">✔</td>
-<td align="center">✔</td>
-<td align="center">✔</td>
-<td align="center">✔</td>
+<td style="text-align:center">✔</td>
+<td style="text-align:center">✔</td>
+<td style="text-align:center">✔</td>
+<td style="text-align:center">✔</td>
 <td></td>
 </tr>
 </tbody>

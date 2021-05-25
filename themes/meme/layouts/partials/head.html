@@ -93,7 +93,7 @@
     {{- $url := .Scratch.Get "url" -}}
     {{- $msApplicationTileImage := $url -}}
     {{- $manifest := "manifest.json" -}}
-    <link rel="shortcut icon" href="{{ $favicon | relURL }}" type="image/x-icon" />
+    <link rel="shortcut icon" type="image/png" href="https://cdn.jsdelivr.net/gh/OSJobs/osjobs-base/img/rabbit-32.png"/>
     <link rel="mask-icon" href="{{ $safariMaskIcon | relURL }}" color="{{ $safariMaskColor }}" />
     <link rel="apple-touch-icon" sizes="180x180" href="{{ $appleTouchIcon | relURL }}" />
     <meta name="apple-mobile-web-app-capable" content="yes" />
