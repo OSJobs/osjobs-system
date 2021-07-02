@@ -15,7 +15,7 @@ date: 2021-07-02T13:26:41+08:00
 
 设计秒杀系统是国内系统设计面试的高频题，学习设计秒杀系统之前，你需要了解如何设计一个基础的电商系统，秒杀系统只是在电商系统上增加了一些特定条件。现在的电商系统功能繁多，除了最基本的购买商品功能，还有物流跟踪，订单管理，社区交互等功能，不过面试中以及本文主要关注的是购买商品功能，购买流程如下：
 
-![购买商品](https://raw.githubusercontent.com/resumejob/How-to-design-a-spike-system/main/imgs/%E8%B4%AD%E4%B9%B0%E5%95%86%E5%93%81.svg?token=ADNLI5TRHC2MZK2ERZ7GNTLA32Q5E)
+![购买商品](https://cdn.jsdelivr.net/gh/OSJobs/osjobs-system/static/spike/%E8%B4%AD%E4%B9%B0%E5%95%86%E5%93%81.svg)
 
 1. 客户从客户端下单
 2. 如果下单成功则进入支付阶段，否则返回购买失败
@@ -32,7 +32,7 @@ date: 2021-07-02T13:26:41+08:00
 
 根据这些信息，我们可以设计架构 1（下图）：
 
-![架构1](https://raw.githubusercontent.com/resumejob/How-to-design-a-spike-system/main/imgs/%E6%9E%B6%E6%9E%841.svg?token=ADNLI5SO66WBSXLCWSQMR5TA32QKI)
+![架构1](https://cdn.jsdelivr.net/gh/OSJobs/osjobs-system/static/spike/%E6%9E%B6%E6%9E%841.svg)
 
 1. 客户端发送下单请求给服务端
 2. 服务端查询数据库
@@ -51,7 +51,7 @@ date: 2021-07-02T13:26:41+08:00
 
 这是一个好的消息，不过同时你发现了一个问题，某些商品的成功下单量要大于库存量，也就是说出现了商品超卖的情况。这可是个严重的问题，因为没办法及时交货给客户对电商平台的信誉有极大影响。仔细分析架构 1 后，我们发现了问题的根源：当商品库存只剩下 1 件而有多位客户同时下单的时候，每个下单请求在查询的时候都发现库存大于零，并且将库存减 1 返回下单成功。下图中，在库存只有 1 件的时候，两个请求却都返回下单成功。
 
-![并发安全](https://raw.githubusercontent.com/resumejob/How-to-design-a-spike-system/main/imgs/%E5%B9%B6%E5%8F%91%E5%AE%89%E5%85%A8.svg?token=ADNLI5XY4KF7K4BDTWFAN43A32QIG)
+![并发安全](https://cdn.jsdelivr.net/gh/OSJobs/osjobs-system/static/spike/%E5%B9%B6%E5%8F%91%E5%AE%89%E5%85%A8.svg)
 
 
 幸运的是，我们知道大部分并发问题都可以通过锁机制或者队列服务来解决：
@@ -66,7 +66,7 @@ date: 2021-07-02T13:26:41+08:00
 
 我们的电商系统中可以应用两阶段加锁，由于下单请求涉及到修改库存，所以先使用排他锁将它锁定，大部分关系型数据库都提供这种功能（在 MySQL 和 PostgresSQL 里面的语法是 SELECT ... FOR 下UPDATE）。流程如下图：
 
-![悲观锁](https://raw.githubusercontent.com/resumejob/How-to-design-a-spike-system/main/imgs/%E6%82%B2%E8%A7%82%E9%94%81.svg?token=ADNLI5QWRBA4IMXXNJVL5XTA32QJI)
+![悲观锁](https://cdn.jsdelivr.net/gh/OSJobs/osjobs-system/static/spike/%E6%82%B2%E8%A7%82%E9%94%81.svg)
 
 1. 蓝色请求先获取排他锁，查询和更新库存，在此期间黑色请求等待获取排他锁。
 2. 蓝色请求更新库存后释放排他锁，返回下单成功
@@ -78,7 +78,7 @@ date: 2021-07-02T13:26:41+08:00
 
 和悲观锁不同，乐观锁策略下事务会记录下查询时的版本号，当事务准备更新库存的时候，如果此时的版本号与查询时的版本号不同，则代表库存被其他事务修改了，这时候就会回滚事务，流程如下图：
 
-![乐观锁](https://raw.githubusercontent.com/resumejob/How-to-design-a-spike-system/main/imgs/%E4%B9%90%E8%A7%82%E9%94%81.svg?token=ADNLI5RJ6CWPSSPN4M6LZ33A32QFK)
+![乐观锁](https://cdn.jsdelivr.net/gh/OSJobs/osjobs-system/static/spike/%E4%B9%90%E8%A7%82%E9%94%81.svg)
 
 1. 蓝色请求与黑色请求查询库存，并记录库存版本号
 2. 蓝色请求先更新库存为 0，返回下单成功
@@ -89,7 +89,7 @@ date: 2021-07-02T13:26:41+08:00
 ##### 分布式锁
 分布式锁在服务端以及数据库之间加上分布式组件来保证请求的并发安全，国内较常使用 Redis 或者 ZooKeeper。和悲观锁类似，每个请求需要先从组件中获取分布式锁之后才可以继续执行。流程如下图：
 
-![分布式锁](https://raw.githubusercontent.com/resumejob/How-to-design-a-spike-system/main/imgs/%E5%88%86%E5%B8%83%E5%BC%8F%E9%94%81.svg?token=ADNLI5WSJXHZD3MX4HWF2L3A32QHE)
+![分布式锁](https://cdn.jsdelivr.net/gh/OSJobs/osjobs-system/static/spike/%E5%88%86%E5%B8%83%E5%BC%8F%E9%94%81.svg)
 
 1. 蓝色请求先获取分布式锁，查询和更新库存，在此期间黑色请求等待获取分布式锁
 2. 蓝色请求更新库存后释放分布式锁，返回下单成功
@@ -100,7 +100,7 @@ date: 2021-07-02T13:26:41+08:00
 ##### 消息队列
 另一个直观的解决方法就是使用消息队列，确保每个商品每个时刻只有一个请求，流程如下图：
 
-![消息队列](https://raw.githubusercontent.com/resumejob/How-to-design-a-spike-system/main/imgs/%E6%B6%88%E6%81%AF%E9%98%9F%E5%88%97.svg?token=ADNLI5QIVJB5TUS2QHSTCH3A32QMK)
+![消息队列](https://cdn.jsdelivr.net/gh/OSJobs/osjobs-system/static/spike/%E6%B6%88%E6%81%AF%E9%98%9F%E5%88%97.svg)
 
 1. 蓝色请求进入队列，黑色请求进入队列，数据库订阅下单请求
 2. 数据库处理蓝色请求，蓝色请求查询和更新库存，返回下单成功
@@ -110,7 +110,7 @@ date: 2021-07-02T13:26:41+08:00
 
 对比两个方案的优缺点之后，队列服务更适合我们的电商系统，架构升级后，架构 2 如下：
 
-![架构2](https://raw.githubusercontent.com/resumejob/How-to-design-a-spike-system/main/imgs/%E6%9E%B6%E6%9E%842.svg?token=ADNLI5X7TM5WAC4FF53EOGLA32QK4)
+![架构2](https://cdn.jsdelivr.net/gh/OSJobs/osjobs-system/static/spike/%E6%9E%B6%E6%9E%842.svg)
 
 1. 客户端发送下单请求给服务端
 2. 服务端将请求发送到消息队列
@@ -136,7 +136,7 @@ date: 2021-07-02T13:26:41+08:00
 
 第三个问题相对简单，可以将秒杀页面缓存到 CDN，另外两个问题可以通过在服务器前面增加限流器来解决，如果商品的库存是 10 件的话，只要限流器接收到 10 * k（k 可以根据业务进行调整）个请求之后，就停止接受该商品的所有请求。这样无论有多少个下单请求，最终到达服务器的单个商品请求数量都不超过 10 * k。实际工程中，因为有客户可能出现支付超时或者多次下单的情况，这时候该订单会释放库存，同时通知限流器可以接受新的请求，也可以使用常见的限流算法来实现动态限流。在架构设计中，限流器可以和负载均衡，安全验证配合使用，这里的安全验证包括了前端的验证答题，秒杀接口动态生成以及防止重复点击按钮等机制。
 
-![流量限制](https://raw.githubusercontent.com/resumejob/How-to-design-a-spike-system/main/imgs/%E6%B5%81%E9%87%8F%E9%99%90%E5%88%B6.svg?token=ADNLI5WI2JOK2RCDIGUYSR3A32QUO)
+![流量限制](https://cdn.jsdelivr.net/gh/OSJobs/osjobs-system/static/spike/%E6%B5%81%E9%87%8F%E9%99%90%E5%88%B6.svg)
 
 
 ##### 热门资源隔离
@@ -147,12 +147,12 @@ date: 2021-07-02T13:26:41+08:00
 
 识别出热门商品之后，我们可以将热门商品的资源进行隔离，并且设置独立的策略，例如 1）使用特殊的限流器（随机丢弃请求）2）使用单独的数据库，并对每个热门商品库存进行分表，这样可以将修改库存的压力分摊到多个数据库中。
 
-![资源隔离](https://raw.githubusercontent.com/resumejob/How-to-design-a-spike-system/main/imgs/%E8%B5%84%E6%BA%90%E9%9A%94%E7%A6%BB.svg?token=ADNLI5SQJVMP2I727U7IRRDA32QM4)
+![资源隔离](https://cdn.jsdelivr.net/gh/OSJobs/osjobs-system/static/spike/%E8%B5%84%E6%BA%90%E9%9A%94%E7%A6%BB.svg)
 
 
 根据以上两个方案，我们可以设计出最后的架构 3：
 
-![架构3](https://raw.githubusercontent.com/resumejob/How-to-design-a-spike-system/main/imgs/%E6%9E%B6%E6%9E%843.svg?token=ADNLI5WS2Y3YKZ3IPJIXHRTA32QL2)
+![架构3](https://cdn.jsdelivr.net/gh/OSJobs/osjobs-system/static/spike/%E6%9E%B6%E6%9E%843.svg)
 
 1. 客户端从 CDN 获取到秒杀静态页面
 2. 客户端发送下单请求给网关
