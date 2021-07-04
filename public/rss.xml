@@ -23,7 +23,7 @@
         
             <copyright>[CC BY-NC-SA 4.0](https://creativecommons.org/licenses/by-nc-sa/4.0/deed.en)</copyright>
         
-        <lastBuildDate>Sun, 04 Jul 2021 13:47:29 +0800</lastBuildDate>
+        <lastBuildDate>Sun, 04 Jul 2021 15:58:12 +0800</lastBuildDate>
         
             <atom:link rel="self" type="application/rss+xml" href="https://osjobs.net/system/rss.xml" />
         
@@ -39,11 +39,9 @@
                 <copyright>[CC BY-NC-SA 4.0](https://creativecommons.org/licenses/by-nc-sa/4.0/deed.en)</copyright>
                 
                     <description><![CDATA[<p>设计秒杀系统是国内系统设计面试的高频题，开始之前，你需要了解如何设计一个基础的电商系统，因为秒杀系统只是在电商系统上增加了一些特定条件。</p>
-<style>
-.gray * {
-  color: gray;
-}
-</style>
+<p><strong>作者：Windson &amp; Alex</strong>
+<br>
+<strong>本文版权归©海外兔所有，请勿转载。</strong></p>
 <h3 id="目录">目录</h3>
 <ol>
 <li>概述</li>
